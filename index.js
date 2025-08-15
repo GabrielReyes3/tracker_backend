@@ -16,6 +16,9 @@ const io = new Server(server, {
   }
 });
 
+// Exponer io a los controladores
+app.set('io', io);
+
 // Socket.io para recibir y emitir ubicaciones
 io.on('connection', (socket) => {
   console.log('Socket conectado:', socket.id);

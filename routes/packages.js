@@ -12,7 +12,7 @@ const { verifyToken, requireRole } = require('../middleware/auth');
 
 // Admin
 router.get('/', verifyToken, requireRole('admin'), getAllPackages);
-router.post('/', verifyToken, requireRole('admin'), createPackage);
+router.post('/', verifyToken, createPackage);
 router.put('/assign', verifyToken, requireRole('admin'), assignPackage);
 
 // Delivery

@@ -31,23 +31,32 @@ exports.getMyPackages = async (req, res) => {
 };
 
 exports.createPackage = async (req, res) => {
-  const { address } = req.body;
+  const { address, deliveryId } = req.body;
+  const io = req.app.get('io');
 
   try {
-    await pool.query(`
-      INSERT INTO packages (address)
-      VALUES ($1)
-    `, [address]);
+    const result = await pool.query(
+      `INSERT INTO packages (address, delivery_id) VALUES ($1, $2) RETURNING *`,
+      [address, deliveryId || null]
+    );
 
-    res.status(201).json({ message: 'Paquete creado' });
+    const pkg = result.rows[0];
+
+    // Emitir evento de paquete nuevo al delivery asignado
+    if (deliveryId) {
+      io.emit(`package-update-${deliveryId}`, pkg);
+    }
+
+    res.json(pkg);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Error al crear paquete' });
+    res.status(500).json({ message: 'Error creando paquete' });
   }
 };
 
 exports.assignPackage = async (req, res) => {
   const { packageId, deliveryId } = req.body;
+  const io = req.app.get('io');
 
   try {
     await pool.query(`
@@ -55,6 +64,9 @@ exports.assignPackage = async (req, res) => {
       SET delivery_id = $1
       WHERE id = $2
     `, [deliveryId, packageId]);
+
+    // Emitir evento de paquete asignado al delivery correspondiente
+    io.emit(`package-update-${deliveryId}`, { id: packageId, delivery_id: deliveryId });
 
     res.status(200).json({ message: 'Paquete asignado' });
   } catch (err) {
